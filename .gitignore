@@ -1,0 +1,7 @@
+/plugged/
+/autoload/plug.vim
+/.netrwhist
+/doc/tags
+*.swp
+*.swo
+*~

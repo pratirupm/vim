@@ -131,26 +131,6 @@ if executable('gopls')
         \ })
 endif
 
-if executable('rust-analyzer')
-  call add(g:lsp_servers, {
-        \ 'name': 'rust-analyzer',
-        \ 'filetype': ['rust'],
-        \ 'path': exepath('rust-analyzer'),
-        \ 'args': [],
-        \ 'syncInit': v:true,
-        \ })
-endif
-
-if executable('lua-language-server')
-  call add(g:lsp_servers, {
-        \ 'name': 'lua-language-server',
-        \ 'filetype': ['lua'],
-        \ 'path': exepath('lua-language-server'),
-        \ 'args': [],
-        \ 'syncInit': v:true,
-        \ })
-endif
-
 " ---------------------------------------------------------------------------
 " fzf / netrw / grep
 " ---------------------------------------------------------------------------
@@ -246,7 +226,7 @@ augroup END
 " ---------------------------------------------------------------------------
 " Formatting
 " ---------------------------------------------------------------------------
-let s:lsp_fts = ['go', 'gomod', 'rust', 'lua']
+let s:lsp_fts = ['go', 'gomod']
 let s:prettier_fts = [
       \ 'javascript', 'javascriptreact',
       \ 'typescript', 'typescriptreact',
@@ -383,5 +363,5 @@ endfunction
 
 augroup vimrc_lsp
   autocmd!
-  autocmd FileType go,gomod,rust,lua call s:lsp_maps()
+  autocmd FileType go,gomod call s:lsp_maps()
 augroup END

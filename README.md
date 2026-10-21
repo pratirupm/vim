@@ -22,7 +22,7 @@ provider.
 - [File explorer](#file-explorer)
 - [which-key guide](#which-key-guide)
 - [Formatting](#formatting)
-- [Language servers](#language-servers)
+- [Language server](#language-server)
 - [Clipboard](#clipboard)
 - [fzf and search](#fzf-and-search)
 - [Filetype settings](#filetype-settings)
@@ -42,7 +42,7 @@ provider.
   - vim-visual-multi
   - yegappan/lsp
   - vim-which-key
-- Vim9 LSP for Go, Rust, and Lua when the corresponding server is installed.
+- Vim9 LSP for Go (including `go.mod`) when `gopls` is installed.
 - Multiple cursors through vim-visual-multi.
 - Automatic formatting on save for LSP-backed filetypes and Prettier
   filetypes.
@@ -72,13 +72,11 @@ provider.
 - `prettier` for JavaScript, TypeScript, JSON, CSS, HTML, Markdown, and YAML
   formatting.
 
-### Optional language servers
+### Optional language server
 
-Only servers found on `PATH` are registered:
+Only `gopls` is configured, and it is registered only if found on `PATH`:
 
 - `gopls` for Go and `go.mod`.
-- `rust-analyzer` for Rust.
-- `lua-language-server` for Lua.
 
 ### Optional clipboard helper
 
@@ -237,9 +235,8 @@ moving to the right window.
 
 ### LSP mappings
 
-These mappings are buffer-local. They are installed for `go`, `gomod`, `rust`,
-and `lua` buffers, and are useful when the matching server is registered and
-ready.
+These mappings are buffer-local. They are installed for `go` and `gomod`
+buffers, and are useful when `gopls` is registered and ready.
 
 | Key | Action |
 |---|---|
@@ -444,7 +441,7 @@ trimmed.
 
 | Formatter | Filetypes | Mechanism |
 |---|---|---|
-| LSP | `go`, `gomod`, `rust`, `lua` | `:LspFormat` through the registered server |
+| LSP | `go`, `gomod` | `:LspFormat` through `gopls` |
 | Prettier | `javascript`, `javascriptreact`, `typescript`, `typescriptreact`, `json`, `jsonc`, `css`, `scss`, `less`, `html`, `markdown`, `yaml` | `prettier --stdin-filepath <path>` |
 
 ### Behavior and limits
@@ -472,8 +469,7 @@ when:
 - no formatter is configured for the filetype.
 
 There is no silent fallback from LSP formatting to an external formatter. Go
-formatting depends on `gopls`; Rust formatting depends on `rust-analyzer`; Lua
-formatting depends on `lua-language-server`.
+formatting depends on `gopls`.
 
 ### Adding or disabling formatters
 
@@ -486,16 +482,15 @@ formatting depends on `lua-language-server`.
 - To keep trailing whitespace, remove the `BufWritePre` autocommand that calls
   `s:trim_trailing_whitespace()`.
 
-## Language servers
+## Language server
 
-The LSP client is `yegappan/lsp`, configured through `g:lsp_servers`. Only
-servers whose executables are present on `PATH` are registered.
+The LSP client is `yegappan/lsp`, configured through `g:lsp_servers`. It has
+one configured server, `gopls`, which is registered only when its executable
+is present on `PATH`.
 
 | Server | Filetypes | Arguments | Initialization |
 |---|---|---|---|
 | `gopls` | `go`, `gomod` | `serve` | synchronous |
-| `rust-analyzer` | `rust` | none | synchronous |
-| `lua-language-server` | `lua` | none | synchronous |
 
 `syncInit: v:true` means server initialization is synchronous. Opening a
 supported file can wait for the server to initialize.
@@ -525,7 +520,7 @@ Notable consequences:
 - Signature help is enabled.
 - Snippets are disabled.
 - Hover, rename, code action, diagnostics, symbols, and formatting mappings are
-  only installed for `go`, `gomod`, `rust`, and `lua` buffers.
+  only installed for `go` and `gomod` buffers.
 
 ### Useful LSP commands
 
@@ -704,7 +699,7 @@ Most behavior is defined in `vimrc`. Important variables:
 | `g:netrw_winsize` | `30` | Explorer width percentage |
 | `g:netrw_chgwin` | `-1` | Open selected files in the main window |
 | `g:lsp_options` | table | LSP completion, diagnostics, hover, signature options |
-| `g:lsp_servers` | list | Registered language servers |
+| `g:lsp_servers` | list | Configured LSP server(s) |
 | `g:fzf_layout` | `{'down': '~40%'}` | fzf picker layout |
 | `g:fzf_history_dir` | state path | fzf history |
 | `$FZF_DEFAULT_COMMAND` | `fd ...` | Default file list |
@@ -736,7 +731,7 @@ are no longer listed in `vimrc`. After updating, restart Vim and check
 
 `bootstrap.sh` only installs missing plugins; it does not run `:PlugUpdate` or
 `:PlugClean`. It also does not install system packages such as `fd`, `rg`,
-`prettier`, or language servers.
+`prettier`, or `gopls`.
 
 Generated files are ignored by `.gitignore`:
 
@@ -783,8 +778,6 @@ Check the server executable and registration:
 
 ```vim
 :echo executable('gopls')
-:echo executable('rust-analyzer')
-:echo executable('lua-language-server')
 :LspShowAllServers
 :LspServer
 ```
@@ -795,10 +788,10 @@ Make sure the buffer has the expected filetype:
 :set filetype?
 ```
 
-LSP mappings exist only in `go`, `gomod`, `rust`, and `lua` buffers. If you add
-a server for another filetype, add that filetype to `s:lsp_fts` and the
-`vimrc_lsp` autocommand. Because initialization is synchronous, a slow
-`rust-analyzer` can delay the first open of a Rust file.
+LSP mappings exist only in `go` and `gomod` buffers. If you add a server for
+another filetype, add that filetype to `s:lsp_fts` and the `vimrc_lsp`
+autocommand. Because initialization is synchronous, a slow `gopls` can delay
+the first open of a Go file.
 
 ### Formatting did not run
 
@@ -899,8 +892,8 @@ guide; that is expected.
 
 - This is a Vim configuration, not Neovim. There is no Lua configuration, no
   Treesitter, and no Neovim API usage.
-- LSP formatting depends on the corresponding server being ready. There is no
-  automatic fallback to `gofmt`, `rustfmt`, or another formatter.
+- Go LSP formatting depends on `gopls` being ready. There is no automatic
+  fallback to `gofmt` or another formatter.
 - LSP snippets are disabled (`snippetSupport: v:false`).
 - LSP server initialization is synchronous, so opening a large project can
   block briefly.
@@ -912,5 +905,5 @@ guide; that is expected.
   save-time formatting still operate at the single-buffer/single-cursor level.
 - Netrw is Vim's built-in file browser. It does not provide icons, git status,
   or a separate file-manager UI; the `?` sheet is a small custom overlay.
-- fzf, `fd`, `rg`, Prettier, and the language servers are external
-  dependencies and are not installed by `bootstrap.sh`.
+- fzf, `fd`, `rg`, Prettier, and `gopls` are external dependencies and are not
+  installed by `bootstrap.sh`.

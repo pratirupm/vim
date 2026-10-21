@@ -178,6 +178,7 @@ if filereadable(expand('~/.config/vim/autoload/plug.vim'))
   Plug 'junegunn/fzf.vim'
   Plug 'tpope/vim-commentary'
   Plug 'tpope/vim-surround'
+  Plug 'mg979/vim-visual-multi', {'branch': 'master'}
   Plug 'yegappan/lsp'
   Plug 'liuchengxu/vim-which-key'
 

@@ -5,9 +5,10 @@ Treesitter, and no Neovim APIs. The live configuration is the real directory
 `~/.config/vim`; on this machine `~/Workspace/vim` is a convenience symlink to
 it.
 
-The setup is deliberately small: six plugins, the bundled `habamax` colorscheme,
-a right-hand netrw tree, fzf, a which-key leader guide, Vim9 LSP, save-time
-formatting, and an optional Wayland clipboard provider.
+The setup is deliberately small: seven plugins, the bundled `habamax`
+colorscheme, a right-hand netrw tree, fzf, a which-key leader guide, Vim9 LSP,
+multiple cursors, save-time formatting, and an optional Wayland clipboard
+provider.
 
 ## Contents
 
@@ -17,6 +18,7 @@ formatting, and an optional Wayland clipboard provider.
 - [Repository layout](#repository-layout)
 - [Plugins](#plugins)
 - [Key mappings](#key-mappings)
+- [Multiple cursors](#multiple-cursors)
 - [File explorer](#file-explorer)
 - [which-key guide](#which-key-guide)
 - [Formatting](#formatting)
@@ -33,13 +35,15 @@ formatting, and an optional Wayland clipboard provider.
 ## Features
 
 - Vim 9.2+, with the bundled `habamax` colorscheme.
-- Six plugins managed by vim-plug:
+- Seven plugins managed by vim-plug:
   - fzf and fzf.vim
   - vim-commentary
   - vim-surround
+  - vim-visual-multi
   - yegappan/lsp
   - vim-which-key
 - Vim9 LSP for Go, Rust, and Lua when the corresponding server is installed.
+- Multiple cursors through vim-visual-multi.
 - Automatic formatting on save for LSP-backed filetypes and Prettier
   filetypes.
 - fzf file, buffer, grep, and jumplist pickers.
@@ -188,6 +192,7 @@ Runtime files are deliberately kept out of the repository:
 | `junegunn/fzf.vim` | `:Files`, `:Buffers`, `:Rg`, `:Jumps` |
 | `tpope/vim-commentary` | `gcc` / `gc` commenting |
 | `tpope/vim-surround` | `ys`, `cs`, and `ds` surround operations |
+| `mg979/vim-visual-multi` | Multiple cursors and multiple selections |
 | `yegappan/lsp` | Vim9 LSP client: completion, diagnostics, hover, rename, format |
 | `liuchengxu/vim-which-key` | Popup leader-key guide |
 
@@ -254,6 +259,59 @@ ready.
 
 `K` overrides Vim's normal keyword-lookup command only in those LSP buffers.
 In other filetypes it retains its standard behavior.
+
+## Multiple cursors
+
+Multiple cursors are provided by `mg979/vim-visual-multi`. It is the seventh
+plugin and has no external dependencies. It uses its own default mappings
+rather than the `Space` leader.
+
+A basic replacement workflow:
+
+1. Put the cursor on a word in normal mode.
+2. Press `<C-n>` to select the word and start visual-multi.
+3. Press `<C-n>` again (or `n`) to add the next occurrence. Press `N` to search
+   backwards.
+4. Press `c` to change all selections, then type the replacement and press
+   `<Esc>`.
+5. Press `<Esc>` again if needed to leave visual-multi.
+
+Common mappings:
+
+| Key | Action |
+|---|---|
+| `<C-n>` | Select the word under the cursor; press again for the next occurrence |
+| `<C-Down>` / `<C-Up>` | Add a cursor below / above |
+| `n` / `N` | Next / previous occurrence |
+| `q` / `Q` | Skip the current occurrence / remove the current cursor |
+| `Tab` | Toggle cursor mode and extend (selection) mode |
+| `i`, `a`, `I`, `A` | Enter insert mode at the cursors |
+| `c`, `d`, `y` | Change, delete, or yank the selections in extend mode |
+| `<Esc>` | Leave visual-multi |
+| `\\A` | Select all occurrences of the current word |
+| `\\<Space>` | Toggle visual-multi's buffer mappings |
+| `:VMClear` | Clear all cursors and reset the session |
+
+The `\\` prefix shown above is visual-multi's default leader, which is two
+backslashes, not the `Space` leader. See `:help visual-multi` for the full
+command set, including regex selection, alignment, and running commands at all
+cursors.
+
+Notes and limitations:
+
+- `<C-n>` starts visual-multi only in normal mode. In insert mode it remains
+  Vim's completion key.
+- The plugin uses buffer-local mappings while active and warns if one of its
+  mappings would overwrite an existing mapping. This configuration does not map
+  `<C-n>`, `<C-Down>`, or `<C-Up>`, so the defaults are available.
+- Multiple cursors are simulated. LSP operations such as rename, code actions,
+  diagnostics, and formatting are still single-buffer/single-cursor concepts;
+  completion is best-effort.
+- Save-time formatting applies to the whole buffer. Finish the multiple-cursor
+  edit and leave visual-multi before saving if formatting matters.
+- In extend mode, `S` can surround the selections when vim-surround is active.
+- The which-key popup covers `Space` leader mappings, so visual-multi's
+  Ctrl-based keys are documented here instead.
 
 ## File explorer
 
@@ -825,6 +883,18 @@ directory. It does not appear in `:messages` and does not affect browsing.
 Pressing a complete leader mapping quickly executes it without opening the
 guide; that is expected.
 
+### Multiple cursors do not start
+
+- Ensure the plugin is loaded: `:echo exists('g:loaded_visual_multi')` should
+  return `1`.
+- Start from normal mode with the cursor on a word and press `<C-n>`. In insert
+  mode `<C-n>` is Vim's completion key.
+- Check `:PlugStatus` and `:messages`; restart Vim after installing the plugin.
+- If a session is stuck or behaves unexpectedly, run `:VMClear` or press
+  `<Esc>` to leave visual-multi.
+- Check for mapping conflicts with `:verbose nmap <C-n>` and
+  `:verbose nmap <C-Down>`.
+
 ## Known limitations
 
 - This is a Vim configuration, not Neovim. There is no Lua configuration, no
@@ -838,6 +908,8 @@ guide; that is expected.
   those buffers are not formatted on save.
 - The clipboard provider requires Wayland and `wl-clipboard`; there is no
   OSC 52 fallback.
+- Multiple cursors are simulated by vim-visual-multi. LSP features and
+  save-time formatting still operate at the single-buffer/single-cursor level.
 - Netrw is Vim's built-in file browser. It does not provide icons, git status,
   or a separate file-manager UI; the `?` sheet is a small custom overlay.
 - fzf, `fd`, `rg`, Prettier, and the language servers are external

@@ -106,3 +106,13 @@ nnoremap <buffer> <silent> <leader>c :<C-u>Shdo cp -r {}<Space>
 xnoremap <buffer> <silent> <leader>c :Shdo cp -r {}<Space>
 nnoremap <buffer> <silent> <leader>m :<C-u>Shdo mv {}<Space>
 xnoremap <buffer> <silent> <leader>m :Shdo mv {}<Space>
+
+" Leader-guide descriptions for the file operations above.
+let b:which_key_map_overlay = {
+      \ 'n': 'new file',
+      \ 'N': 'new directory',
+      \ 'r': 'rename entry',
+      \ 'd': 'delete entry',
+      \ 'c': 'copy entry',
+      \ 'm': 'move entry',
+      \ }

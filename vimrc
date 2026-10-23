@@ -209,6 +209,15 @@ xnoremap <silent> <leader>c :Commentary<CR>
 " ---------------------------------------------------------------------------
 " which-key
 " ---------------------------------------------------------------------------
+" Merge buffer-local overrides over the global leader descriptions.
+function! s:which_key_context_map() abort
+  let l:map = copy(get(g:, 'which_key_map', {}))
+  if exists('b:which_key_map_overlay')
+    call extend(l:map, b:which_key_map_overlay)
+  endif
+  return l:map
+endfunction
+
 function! s:which_key_setup() abort
   let g:which_key_map = {
         \ 'e': 'directory buffer',
@@ -224,7 +233,8 @@ function! s:which_key_setup() abort
   let g:which_key_position = 'botright'
   let g:which_key_hspace = 2
 
-  call which_key#register('<Space>', 'g:which_key_map')
+  let g:WhichKeyMapFunc = function('s:which_key_context_map')
+  call which_key#register('<Space>', 'g:WhichKeyMapFunc()')
   nnoremap <silent> <leader> :<C-u>WhichKey '<Space>'<CR>
   xnoremap <silent> <leader> :<C-u>WhichKeyVisual '<Space>'<CR>
 endfunction

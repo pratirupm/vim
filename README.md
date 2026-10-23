@@ -482,6 +482,9 @@ entry under the cursor:
 
 `<leader>c` and `<leader>m` also work in visual mode for multiple entries.
 
+Press `Space` in a dirvish buffer to show these mappings with descriptions in
+the which-key guide.
+
 Copy and move use dirvish's `:Shdo` helper, which opens a small temporary
 script in a split. Add the destination path after the generated command, then
 press `Z!` to run it. For example:
@@ -516,7 +519,9 @@ The leader guide is provided by vim-which-key. Press `Space` and pause for
 descriptions. A complete mapping such as `Space e` still executes immediately
 if pressed quickly.
 
-Descriptions come from `g:which_key_map` in `vimrc`:
+Descriptions come from `g:which_key_map` in `vimrc`. Filetype and plugin
+buffers can add a buffer-local `b:which_key_map_overlay`; it is merged over the
+global map whenever the guide opens.
 
 ```vim
 let g:which_key_map = {
@@ -529,10 +534,24 @@ let g:which_key_map = {
       \ 'c': 'commentary',
       \ 'F': 'format buffer',
       \ }
+
+" dirvish: after/ftplugin/dirvish.vim
+let b:which_key_map_overlay = {
+      \ 'n': 'new file',
+      \ 'N': 'new directory',
+      \ 'r': 'rename entry',
+      \ 'd': 'delete entry',
+      \ 'c': 'copy entry',
+      \ 'm': 'move entry',
+      \ }
 ```
 
+This keeps the global descriptions outside dirvish while showing the
+file-operation descriptions inside it.
+
 The guide is positioned at the bottom right with two columns of horizontal
-spacing. LSP buffer-local mappings are shown when those mappings are active.
+spacing. Buffer-local mappings such as the dirvish file operations and LSP
+mappings are shown when those mappings are active.
 
 Setup runs on `VimEnter`, after startup files and plugin initialization. If the
 plugin is not installed or fails to load, the leader mappings still work; only
@@ -788,7 +807,7 @@ The following overrides are applied from `after/ftplugin/`:
 | Go | `tabstop=4` for display; Vim's runtime Go ftplugin keeps real tabs and sets the other indentation options |
 | Markdown | `wrap`, `linebreak`, `breakindent`, `spell`, `textwidth=100`, two-space indentation |
 | Git commit messages | `spell`, `textwidth=72` |
-| Dirvish | Buffer-local file-operation mappings for the cursor entry |
+| Dirvish | Buffer-local file-operation mappings and which-key descriptions for the cursor entry |
 
 `formatoptions` has `c`, `r`, and `o` removed globally and for every filetype,
 so comments are not continued automatically and insert-mode Enter does not
@@ -828,7 +847,8 @@ Most behavior is defined in `vimrc`. Important variables:
 | `g:fzf_history_dir` | state path | fzf history |
 | `$FZF_DEFAULT_COMMAND` | `fd ...` | Default file list |
 | `&grepprg` | `rg ...` | `:grep` command |
-| `g:which_key_map` | table | Leader descriptions |
+| `g:which_key_map` | table | Base leader descriptions |
+| `b:which_key_map_overlay` | table (buffer-local) | Per-buffer leader description overrides |
 | `g:which_key_position` | `botright` | Guide position |
 | `g:which_key_hspace` | `2` | Guide column spacing |
 
@@ -993,6 +1013,10 @@ If the filetype is not `dirvish`, the `after/ftplugin/dirvish.vim` mappings are
 not loaded. Restart Vim, or run `:set filetype=dirvish` in the directory buffer
 to trigger the ftplugin. For files you have already opened, use eunuch's
 `:Remove`, `:Rename`, `:Move`, `:Copy`, or `:Mkdir` instead.
+
+The descriptions shown in the `Space` guide come from the same buffer-local
+overlay; `:echo get(b:, 'which_key_map_overlay', {})` should show it in a
+dirvish buffer.
 
 ### which-key does not appear
 

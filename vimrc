@@ -132,18 +132,16 @@ if executable('gopls')
 endif
 
 " ---------------------------------------------------------------------------
-" fzf / netrw / grep
+" fzf / dirvish / grep
 " ---------------------------------------------------------------------------
 let g:fzf_layout = {'down': '~40%'}
 let g:fzf_history_dir = expand('~/.local/state/vim/fzf-history')
 let $FZF_DEFAULT_COMMAND = 'fd --type f --hidden --follow --exclude .git --exclude node_modules --exclude target --exclude dist --exclude .venv'
 
-let g:netrw_banner = 0
-let g:netrw_liststyle = 3
-let g:netrw_winsize = 30
-let g:netrw_browse_split = 0
-let g:netrw_altv = 1
-let g:netrw_chgwin = -1
+" Dirvish replaces netrw for local directory browsing.
+let g:loaded_netrw = 1
+let g:loaded_netrwPlugin = 1
+let g:dirvish_mode = ':sort ,^.*[\/],'
 
 let &grepprg = "rg --vimgrep --smart-case --hidden --glob '!.git'"
 set grepformat=%f:%l:%c:%m
@@ -158,6 +156,8 @@ if filereadable(expand('~/.config/vim/autoload/plug.vim'))
   Plug 'junegunn/fzf.vim'
   Plug 'tpope/vim-commentary'
   Plug 'tpope/vim-surround'
+  Plug 'tpope/vim-eunuch'
+  Plug 'justinmk/vim-dirvish'
   Plug 'mg979/vim-visual-multi', {'branch': 'master'}
   Plug 'yegappan/lsp'
   Plug 'liuchengxu/vim-which-key'
@@ -184,7 +184,18 @@ nnoremap <silent> <C-l> <C-w>l
 
 nnoremap <silent> ]b :bnext<CR>
 nnoremap <silent> [b :bprevious<CR>
-nnoremap <silent> <leader>e :Lexplore!<CR>
+
+function! s:dirvish_toggle() abort
+  if &filetype ==# 'dirvish'
+    if exists('w:dirvish')
+      execute 'normal q'
+    endif
+  elseif &buftype ==# ''
+    Dirvish
+  endif
+endfunction
+
+nnoremap <silent> <leader>e :<C-u>call <SID>dirvish_toggle()<CR>
 nnoremap <silent> <leader>l :set list!<CR>
 
 nnoremap <silent> <leader>f :Files<CR>
@@ -200,7 +211,7 @@ xnoremap <silent> <leader>c :Commentary<CR>
 " ---------------------------------------------------------------------------
 function! s:which_key_setup() abort
   let g:which_key_map = {
-        \ 'e': 'file explorer (right)',
+        \ 'e': 'directory buffer',
         \ 'f': 'find files',
         \ 'b': 'buffers',
         \ '/': 'live grep',

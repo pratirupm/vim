@@ -42,14 +42,22 @@ mkdir -p "$config_dir/autoload" \
          "$state_dir/backup" \
          "$state_dir/fzf-history"
 
+# Remove netrw's legacy directory history; dirvish replaces netrw.
+if [[ -e "$config_dir/.netrwhist" ]]; then
+  rm -f "$config_dir/.netrwhist"
+  echo "removed legacy netrw state (.netrwhist)"
+fi
+
 if [[ ! -f "$config_dir/autoload/plug.vim" ]]; then
   echo "downloading vim-plug..."
   curl -fLo "$config_dir/autoload/plug.vim" \
     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
 fi
 
-echo "installing plugins..."
-vim -es -Nu "$config_dir/vimrc" -c 'PlugInstall --sync' -c 'qa!'
+# Install declared plugins, then remove checkouts no longer in vimrc.
+echo "installing plugins and cleaning stale plugin checkouts..."
+vim -es -Nu "$config_dir/vimrc" \
+  -c 'PlugInstall --sync' -c 'PlugClean!' -c 'qa!'
 
 echo
 echo "done. start vim normally (do not pass -u) so it reads ~/.config/vim/vimrc."

@@ -5,10 +5,10 @@ Treesitter, and no Neovim APIs. The live configuration is the real directory
 `~/.config/vim`; on this machine `~/Workspace/vim` is a convenience symlink to
 it.
 
-The setup is deliberately small: seven plugins, the bundled `habamax`
-colorscheme, a right-hand netrw tree, fzf, a which-key leader guide, Vim9 LSP,
-multiple cursors, save-time formatting, and an optional Wayland clipboard
-provider.
+The setup is deliberately small: nine plugins, the bundled `habamax`
+colorscheme, a current-window dirvish directory buffer, fzf, a which-key leader
+guide, Vim9 LSP, multiple cursors, save-time formatting, and an optional
+Wayland clipboard provider.
 
 ## Contents
 
@@ -35,10 +35,12 @@ provider.
 ## Features
 
 - Vim 9.2+, with the bundled `habamax` colorscheme.
-- Seven plugins managed by vim-plug:
+- Nine plugins managed by vim-plug:
   - fzf and fzf.vim
   - vim-commentary
   - vim-surround
+  - vim-eunuch
+  - vim-dirvish
   - vim-visual-multi
   - yegappan/lsp
   - vim-which-key
@@ -47,7 +49,8 @@ provider.
 - Automatic formatting on save for LSP-backed filetypes and Prettier
   filetypes.
 - fzf file, buffer, grep, and jumplist pickers.
-- A right-side netrw tree with expand/collapse and a custom `?` action sheet.
+- A current-window dirvish directory buffer with eunuch-backed file
+  operations.
 - Persistent undo, swap files, and Viminfo under `~/.local/state/vim`.
 - Optional system clipboard support through `wl-clipboard` on Wayland.
 
@@ -85,6 +88,117 @@ Only `gopls` is configured, and it is registered only if found on `PATH`:
 A UTF-8 terminal is recommended. The configuration uses Unicode characters for
 `listchars`, `fillchars`, and `showbreak`.
 
+### Per-platform requirements
+
+Exact install commands for each platform. The notes cover package-name
+differences, builds older than Vim 9.2, and clipboard support.
+
+#### macOS
+
+```bash
+brew install vim git fzf fd ripgrep gopls prettier
+```
+
+- Requires [Homebrew](https://brew.sh); install it first if `brew` is
+  missing.
+- The system `/usr/bin/vim` is older than 9.2; use the Homebrew build. It is
+  a “huge” build with `+clipboard` and `+clipboard_provider`.
+- `curl` ships with macOS. `git` also comes with the Xcode command-line
+  tools (`xcode-select --install`).
+- The bundled clipboard provider is Wayland-only and stays inactive here;
+  `"+y` and `"+p` use the macOS clipboard directly.
+
+#### Fedora
+
+```bash
+sudo dnf install vim-enhanced git curl fzf ripgrep fd-find wl-clipboard gopls
+```
+
+- `vim-enhanced` is Vim 9.2 with `+clipboard_provider`; `fd-find` provides
+  the `fd` command.
+- `prettier` is not packaged. Install it with npm or Bun. Fedora ships
+  Node.js in versioned streams; `sudo dnf install nodejs22-npm-bin` provides
+  `node` and `npm`, then `sudo npm install -g prettier`.
+
+#### Debian and Ubuntu
+
+```bash
+sudo apt install vim git curl fzf ripgrep fd-find wl-clipboard gopls
+sudo ln -sf "$(command -v fdfind)" /usr/local/bin/fd
+```
+
+- `fd-find` installs the binary as `fdfind`; the symlink provides the `fd`
+  command that the configuration expects.
+- `prettier` is not packaged. Install it with npm (`sudo apt install nodejs
+  npm`, then `sudo npm install -g prettier`) or with Bun.
+- Vim versions: Debian 14 (forky) and Ubuntu 26.10 ship 9.2. Debian 13
+  (9.1.1230) and Ubuntu 26.04 (9.1.2141) ship 9.1, below the 9.2 baseline but
+  new enough for the clipboard-provider API. Ubuntu 24.04 (9.1.0016)
+  predates that API. On an older release, build Vim 9.2 from source
+  (`--with-features=huge --enable-terminal`) if you need the exact baseline.
+
+#### Arch Linux
+
+```bash
+sudo pacman -S vim git curl fzf ripgrep fd wl-clipboard gopls prettier
+```
+
+- The `vim` package is built without `+clipboard`. The bundled Wayland
+  provider plus `wl-clipboard` supplies the clipboard; alternatively install
+  `gvim`, which also provides the terminal `vim` and has `+clipboard`.
+
+#### Fedora Silverblue and Kinoite
+
+`git-core`, `curl`, and `wl-clipboard` are already in the base image. Layer
+the remaining packages; the change applies after the reboot:
+
+```bash
+sudo rpm-ostree install vim-enhanced fzf ripgrep fd-find gopls
+systemctl reboot
+```
+
+Alternatively, install everything in a toolbox:
+
+```bash
+toolbox create --container vim
+toolbox enter vim
+sudo dnf install vim-enhanced git curl fzf ripgrep fd-find gopls
+```
+
+The toolbox shares `$HOME`, so it uses the same configuration. `prettier` is
+not packaged; install it with npm or Bun in the toolbox or on the host.
+
+#### Windows
+
+WSL2 is the supported route for this configuration. Install Ubuntu under
+WSL (`wsl --install -d Ubuntu`), apply the
+[Debian and Ubuntu](#debian-and-ubuntu) commands inside it, and use Windows
+Terminal for UTF-8 and true-color support. `bootstrap.sh` and the XDG paths
+then work as on Linux.
+
+For native Windows, install the official Vim 9.2 build and the helper
+commands with winget:
+
+```powershell
+winget install vim.vim
+winget install Git.Git
+winget install junegunn.fzf
+winget install sharkdp.fd
+winget install BurntSushi.ripgrep.MSVC
+winget install OpenJS.NodeJS.LTS
+npm install -g prettier
+winget install GoLang.Go
+go install golang.org/x/tools/gopls@latest
+```
+
+The official build is a “huge” build (`GUI=yes`, `VIMDLL=yes`) with
+`+popupwin`, `+job`, `+channel`, `+timers`, `+terminal`, and the native
+`+clipboard` feature in both `vim.exe` and `gvim.exe`. Run the `npm` and `go`
+commands in a fresh PowerShell session, after the installers have updated
+`PATH`. `go install` writes `gopls.exe` to `%USERPROFILE%\go\bin`; add that
+directory to `PATH` as well. Native Vim reads `~/_vimrc` or `~/vimfiles`, not
+`~/.config/vim`, so run this repository through WSL2.
+
 ## Installation
 
 ### From this checkout
@@ -111,12 +225,16 @@ cd /path/to/your/vim-config
 3. Warns if `~/.vimrc` or `~/.vim/vimrc` exists, because those files take
    precedence over `~/.config/vim/vimrc`.
 4. Creates the runtime state directories under `~/.local/state/vim`.
-5. Downloads vim-plug to `autoload/plug.vim` if it is missing.
-6. Runs `:PlugInstall --sync` in a headless Vim.
+5. Removes legacy netrw history (`.netrwhist`); dirvish replaces netrw.
+6. Downloads vim-plug to `autoload/plug.vim` if it is missing.
+7. Installs missing plugins and runs `:PlugClean!` in a headless Vim.
 
 If the script is run from a checkout elsewhere and `~/.config/vim` already
 exists as a real directory, the script refuses to replace it. Move that
 directory aside, or make it a symlink to this checkout, before rerunning.
+
+`bootstrap.sh` requires bash and a Unix-like environment. On Windows, run it
+inside WSL2; see [Per-platform requirements](#per-platform-requirements).
 
 ### First start
 
@@ -157,10 +275,10 @@ If you change the `Plug` list in `vimrc`, run:
 ├── .gitignore
 ├── after/
 │   ├── ftplugin/
+│   │   ├── dirvish.vim      file operations in dirvish buffers
 │   │   ├── gitcommit.vim    commit-message settings
 │   │   ├── go.vim           Go tab display
-│   │   ├── markdown.vim     prose and spell settings
-│   │   └── netrw.vim        netrw `?` action sheet
+│   │   └── markdown.vim     prose and spell settings
 │   └── plugin/
 │       └── clipboard.vim    Vim9 Wayland clipboard provider
 ├── autoload/
@@ -190,6 +308,8 @@ Runtime files are deliberately kept out of the repository:
 | `junegunn/fzf.vim` | `:Files`, `:Buffers`, `:Rg`, `:Jumps` |
 | `tpope/vim-commentary` | `gcc` / `gc` commenting |
 | `tpope/vim-surround` | `ys`, `cs`, and `ds` surround operations |
+| `tpope/vim-eunuch` | `:Remove`, `:Rename`, `:Move`, `:Copy`, `:Mkdir` |
+| `justinmk/vim-dirvish` | Directory buffers used by `<leader>e` |
 | `mg979/vim-visual-multi` | Multiple cursors and multiple selections |
 | `yegappan/lsp` | Vim9 LSP client: completion, diagnostics, hover, rename, format |
 | `liuchengxu/vim-which-key` | Popup leader-key guide |
@@ -212,7 +332,7 @@ The leader and local leader are both `Space`.
 | `<Esc>` | Clear search highlighting in normal mode |
 | `<C-h>` / `<C-j>` / `<C-k>` / `<C-l>` | Move to the left / lower / upper / right window |
 | `]b` / `[b` | Next / previous buffer |
-| `<leader>e` | Toggle the right-hand netrw file explorer |
+| `<leader>e` | Toggle the current-window dirvish directory buffer |
 | `<leader>f` | Open the fzf file picker (`:Files`) |
 | `<leader>b` | Open the fzf buffer picker (`:Buffers`) |
 | `<leader>/` | Open the fzf live-grep picker (`:Rg`) |
@@ -229,9 +349,10 @@ Plugin defaults also apply:
 - `gcc` comments a line and `gc` comments a visual selection.
 - `ys`, `cs`, and `ds` add, change, and delete surroundings.
 
-Inside a netrw buffer, netrw's buffer-local mappings take precedence over the
-global window mappings. For example, `<C-l>` refreshes the listing instead of
-moving to the right window.
+Inside a dirvish buffer, dirvish's buffer-local mappings take precedence over
+the global window mappings. For example, `q` returns to the previous file,
+`<CR>` opens the entry under the cursor, and `-` goes up one directory. The
+file-operation mappings are listed under [File explorer](#file-explorer).
 
 ### LSP mappings
 
@@ -259,9 +380,8 @@ In other filetypes it retains its standard behavior.
 
 ## Multiple cursors
 
-Multiple cursors are provided by `mg979/vim-visual-multi`. It is the seventh
-plugin and has no external dependencies. It uses its own default mappings
-rather than the `Space` leader.
+Multiple cursors are provided by `mg979/vim-visual-multi`. It has no external
+dependencies and uses its own default mappings rather than the `Space` leader.
 
 A basic replacement workflow:
 
@@ -312,89 +432,82 @@ Notes and limitations:
 
 ## File explorer
 
-`<leader>e` runs `:Lexplore!` and toggles netrw on the right side. The relevant
-settings are:
+Dirvish replaces netrw. `<leader>e` opens the current file's directory in the
+current window; pressing it again in a dirvish buffer returns to the previous
+file. `:Dirvish` opens the current file's directory, or the current working
+directory for an unnamed buffer. `:Dirvish /path` opens a specific directory.
+
+Netrw is disabled explicitly:
 
 ```vim
-let g:netrw_banner = 0
-let g:netrw_liststyle = 3
-let g:netrw_winsize = 30
-let g:netrw_browse_split = 0
-let g:netrw_altv = 1
-let g:netrw_chgwin = -1
+let g:loaded_netrw = 1
+let g:loaded_netrwPlugin = 1
+let g:dirvish_mode = ':sort ,^.*[\/],'
 ```
 
-- `g:netrw_liststyle = 3` enables tree listing.
-- `g:netrw_winsize = 30` gives the explorer roughly 30% of the screen width.
-- `g:netrw_chgwin = -1` makes files opened from the side explorer open in the
-  main window instead of the explorer window.
-- `g:netrw_banner = 0` hides the netrw banner.
+The last setting sorts directories before files. Dirvish lists entries as full
+paths, so the buffer name and the lines are directly usable with Vim's file
+functions and `:Shdo`.
 
-### Tree behavior
-
-Netrw's tree display always starts with a parent shortcut and then the current
-directory root:
-
-```text
-../
-vim/
-| after/
-| autoload/
-| plugged/
-| README.md
-| bootstrap.sh
-| vimrc
-```
-
-- `../` is the parent-directory shortcut, not the contents of the parent.
-- The next line (`vim/` in this example) is the current directory as the tree
-  root. This is why `vim .` from `~/.config/vim` shows `vim/` under `../`.
-- Directory entries start collapsed. Press `<CR>` on a directory to expand it,
-  and press `<CR>` again to collapse it.
-- Press `<CR>` on a file to open it in the main window.
-
-If the directory looks wrong, verify the actual browsing root:
-
-```vim
-:echo getcwd()
-:echo b:netrw_curdir
-:echo w:netrw_treetop
-```
-
-### Netrw actions
-
-Press `?` inside the explorer for the compact action sheet, or `<F1>` for the
-full netrw help. The quick sheet is also available as
-`:NetrwCheatSheet`. Its popup closes with `?`, `q`, `<Esc>`, or `<CR>`.
+### Navigation
 
 | Key | Action |
 |---|---|
-| `<CR>` | Open a file, or expand/collapse a directory |
-| `%` | Create a new file |
-| `d` | Create a new directory |
-| `D` | Delete the file or directory under the cursor |
-| `R` | Rename the file or directory under the cursor |
-| `mf` | Mark file(s) |
-| `mt` | Set the target directory for copy/move |
-| `mc` | Copy marked files to the target directory |
-| `mm` | Move marked files to the target directory |
-| `mu` | Unmark all files |
+| `<CR>` | Open a file, or enter a directory |
+| `o` | Open an entry in a horizontal split |
+| `a` | Open an entry in a vertical split |
 | `-` | Go to the parent directory |
-| `<C-l>` | Refresh the listing |
-| `?` | Show the quick action sheet |
-| `<F1>` | Open full netrw help |
+| `~` | Go to the home directory |
+| `q` / `gq` | Close the directory buffer and return to the previous file |
+| `R` | Reload the listing |
+| `K` | Show file information |
+| `g?` | Open dirvish's mapping help |
 
-Netrw does not have a separate paste key. The workflow is target first, then
-action:
+Dirvish has no tree view; each directory is a normal buffer. `q` restores the
+previous buffer, so `<leader>e` is a true toggle.
 
-1. Put the cursor on the destination directory and press `mt` to set it as the
-   target, or browse into the destination and press `mt`.
-2. Move to the source files and press `mf` to mark them.
-3. Press `mc` to copy the marked files, or `mm` to move them.
-4. Press `mu` to clear marks.
+### File operations
 
-The custom `?` mapping is buffer-local to netrw, so normal `?` backward search
-is unaffected elsewhere.
+Dirvish is intentionally read-only. These buffer-local mappings act on the
+entry under the cursor:
+
+| Key | Action |
+|---|---|
+| `<leader>n` | Create and edit a new file |
+| `<leader>N` | Create a new directory |
+| `<leader>r` | Rename the entry |
+| `<leader>d` | Delete the entry (confirmation required) |
+| `<leader>c` | Copy the entry (`:Shdo cp -r {}`) |
+| `<leader>m` | Move the entry (`:Shdo mv {}`) |
+
+`<leader>c` and `<leader>m` also work in visual mode for multiple entries.
+
+Copy and move use dirvish's `:Shdo` helper, which opens a small temporary
+script in a split. Add the destination path after the generated command, then
+press `Z!` to run it. For example:
+
+```sh
+cp -r vimrc ~/.config/vim/vimrc.bak
+```
+
+`<leader>n`, `<leader>N`, `<leader>r`, and `<leader>d` use Vim's
+`input()`/`confirm()` prompts; there is no separate file-manager window.
+
+### Eunuch commands
+
+[vim-eunuch](https://github.com/tpope/vim-eunuch) provides commands for the
+file in the current buffer, not the dirvish cursor line:
+
+| Command | Action |
+|---|---|
+| `:Remove` | Delete the current file from disk |
+| `:Rename {name}` | Rename the current file |
+| `:Move {dir}` | Move the current file |
+| `:Copy {dir}` | Copy the current buffer to a new file |
+| `:Mkdir [dir]` | Create a directory, defaulting to the current file's parent |
+
+Use the dirvish mappings above when operating on an entry without opening it
+first.
 
 ## which-key guide
 
@@ -407,7 +520,7 @@ Descriptions come from `g:which_key_map` in `vimrc`:
 
 ```vim
 let g:which_key_map = {
-      \ 'e': 'file explorer (right)',
+      \ 'e': 'directory buffer',
       \ 'f': 'find files',
       \ 'b': 'buffers',
       \ '/': 'live grep',
@@ -580,15 +693,23 @@ normal clipboard; the `*` register uses the Wayland primary selection (`wl-copy
 -p` / `wl-paste -p`). When the provider is unavailable, nothing is changed and
 Vim's normal registers still work inside Vim.
 
-### Installing on Fedora
+### Installing wl-clipboard
 
 Install the helper in the same environment or container where Vim runs:
 
 ```bash
-sudo dnf install -y wl-clipboard
+sudo dnf install -y wl-clipboard     # Fedora
+sudo apt install -y wl-clipboard     # Debian and Ubuntu
+sudo pacman -S wl-clipboard          # Arch
 ```
 
-On other distributions, install the equivalent `wl-clipboard` package.
+On Fedora Silverblue, `wl-clipboard` is already in the base image. On other
+distributions, install the equivalent package.
+
+The provider is Wayland-only. On macOS and Windows, the builds described in
+[Per-platform requirements](#per-platform-requirements) include the native
+`+clipboard` feature; `set clipboard=unnamed` makes yank and delete use the
+system clipboard there.
 
 ### Checking clipboard support
 
@@ -605,6 +726,10 @@ Expected result:
 - `v:clipmethod` is `wl_clipboard`.
 - `executable('wl-copy')` is `1`.
 - `$WAYLAND_DISPLAY` is non-empty.
+
+On macOS and Windows, the native `+clipboard` feature is used instead and
+`v:clipmethod` stays `none` unless a provider is defined; check
+`:echo has('clipboard')` there.
 
 If `v:clipmethod` is `none`, the provider is inactive. Common causes are a
 missing `wl-clipboard` package, a non-Wayland session, or a container that does
@@ -663,7 +788,7 @@ The following overrides are applied from `after/ftplugin/`:
 | Go | `tabstop=4` for display; Vim's runtime Go ftplugin keeps real tabs and sets the other indentation options |
 | Markdown | `wrap`, `linebreak`, `breakindent`, `spell`, `textwidth=100`, two-space indentation |
 | Git commit messages | `spell`, `textwidth=72` |
-| Netrw | Buffer-local `?` quick action sheet and `:NetrwCheatSheet` |
+| Dirvish | Buffer-local file-operation mappings for the cursor entry |
 
 `formatoptions` has `c`, `r`, and `o` removed globally and for every filetype,
 so comments are not continued automatically and insert-mode Enter does not
@@ -695,9 +820,8 @@ Most behavior is defined in `vimrc`. Important variables:
 |---|---|---|
 | `mapleader` / `maplocalleader` | `Space` | Leader keys |
 | `colorscheme` | `habamax` | Bundled colorscheme |
-| `g:netrw_liststyle` | `3` | Tree listing |
-| `g:netrw_winsize` | `30` | Explorer width percentage |
-| `g:netrw_chgwin` | `-1` | Open selected files in the main window |
+| `g:loaded_netrw` / `g:loaded_netrwPlugin` | `1` | Disable netrw; dirvish handles directories |
+| `g:dirvish_mode` | `':sort ,^.*[\/],'` | Sort directories before files |
 | `g:lsp_options` | table | LSP completion, diagnostics, hover, signature options |
 | `g:lsp_servers` | list | Configured LSP server(s) |
 | `g:fzf_layout` | `{'down': '~40%'}` | fzf picker layout |
@@ -729,15 +853,14 @@ Inside Vim:
 are no longer listed in `vimrc`. After updating, restart Vim and check
 `:messages` for errors.
 
-`bootstrap.sh` only installs missing plugins; it does not run `:PlugUpdate` or
-`:PlugClean`. It also does not install system packages such as `fd`, `rg`,
-`prettier`, or `gopls`.
+`bootstrap.sh` installs missing plugins and runs `:PlugClean!` to remove plugin
+checkouts that are no longer in `vimrc`. It does not run `:PlugUpdate` or
+install system packages such as `fd`, `rg`, `prettier`, or `gopls`.
 
 Generated files are ignored by `.gitignore`:
 
 - `autoload/plug.vim`
 - `plugged/`
-- `.netrwhist`
 - `doc/tags`
 - swap files and editor backup files
 
@@ -837,33 +960,39 @@ Check the required executables:
 Install missing tools or adjust the exclusions in `vimrc`. The commands run from
 Vim's current working directory.
 
-### The netrw tree looks like the wrong directory
+### Dirvish replaced my current window
 
-The tree begins with `../` followed by the current directory root. This is
-normal:
+This is expected. Dirvish is a directory buffer, not a sidebar. `<leader>e`
+opens the current file's directory in the current window. Press `q` to return
+to the previous file, `<CR>` to open an entry in place, `o` to open it in a
+horizontal split, or `a` to open it in a vertical split.
 
-```text
-../
-project/
-| src/
-| README.md
-```
-
-`../` is the parent shortcut; `project/` is the current root. Check the actual
-paths with:
+Check the browsing root with:
 
 ```vim
+:echo expand('%')
 :echo getcwd()
-:echo b:netrw_curdir
-:echo w:netrw_treetop
 ```
 
-Press `<CR>` on a directory to expand or collapse it. Press `?` for the quick
-action sheet and `<F1>` for full netrw help.
+`:Dirvish` with no argument uses the current buffer's directory, or the current
+working directory for an unnamed buffer. `:Dirvish /path/to/dir` opens a
+specific directory.
 
-On some Vim 9.2 builds, the bundled netrw can leave a harmless
-`E121: Undefined variable: s:netrwgray` value in `v:errmsg` while listing a
-directory. It does not appear in `:messages` and does not affect browsing.
+### Dirvish file operations are missing
+
+The `<leader>` file-operation mappings are buffer-local to `dirvish` buffers.
+Check the filetype and mappings:
+
+```vim
+:set filetype?
+:verbose nmap <leader>n
+:messages
+```
+
+If the filetype is not `dirvish`, the `after/ftplugin/dirvish.vim` mappings are
+not loaded. Restart Vim, or run `:set filetype=dirvish` in the directory buffer
+to trigger the ftplugin. For files you have already opened, use eunuch's
+`:Remove`, `:Rename`, `:Move`, `:Copy`, or `:Mkdir` instead.
 
 ### which-key does not appear
 
@@ -903,7 +1032,9 @@ guide; that is expected.
   OSC 52 fallback.
 - Multiple cursors are simulated by vim-visual-multi. LSP features and
   save-time formatting still operate at the single-buffer/single-cursor level.
-- Netrw is Vim's built-in file browser. It does not provide icons, git status,
-  or a separate file-manager UI; the `?` sheet is a small custom overlay.
+- Dirvish is a directory buffer, not a tree or persistent sidebar. It replaces
+  the current window, and its file operations act on the cursor line. Netrw is
+  disabled, so netrw's remote URL editing and its file-manager UI are
+  unavailable.
 - fzf, `fd`, `rg`, Prettier, and `gopls` are external dependencies and are not
   installed by `bootstrap.sh`.
